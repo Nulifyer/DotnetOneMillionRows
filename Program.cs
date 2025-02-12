@@ -1,23 +1,26 @@
-﻿using NumType = float;
+﻿using System.Collections.Concurrent;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.VisualBasic;
+using NumType = float;
 
 var start = DateTime.Now;
 
 const string folder = @"C:\Users\Kyle\Documents\source\OdinOneBillionRows\data";
 const string filename = 
     //"measurements-1_000.txt";
-    "measurements-1_000_000.txt";
-    //"measurements.txt";
+    //"measurements-1_000_000.txt";
+    "measurements.txt";
 const string filepath = $"{folder}\\{filename}";
 using var file = new StreamReader(filepath);
 
-var stations = new Dictionary<string, Station>();
+var stations = new ConcurrentDictionary<string, Station>();
 
 while (true)
 {
     var line = file.ReadLine();
     if (line is not null && line?.Length > 0)
     {
-        ProcessLine(line);
+        ThreadPool.QueueUserWorkItem(ProcessLine, new WorkerContext(line, stations));
     }
     if (file.EndOfStream)
     {
@@ -28,66 +31,66 @@ while (true)
 var end = DateTime.Now;
 var runtime = end - start;
 
-bool first = false;
-foreach (var st in stations.Values)
-{
-    if (!first)
-        Console.Write(",");
-    else
-        first = false;
+// bool first = false;
+// foreach (var st in stations.Values)
+// {
+//     if (!first)
+//         Console.Write(",");
+//     else
+//         first = false;
 
-    Console.Write(st.ToString());
-}
-Console.Write("\n");
+//     Console.Write(st.ToString());
+// }
+// Console.Write("\n");
 
 Console.WriteLine($"Runtime: {runtime}");
 
-
-void ProcessLine(string line)
+static void ProcessLine(object? obj)
 {
-    var bits = line.Split(';');
+    var ctx = (WorkerContext)obj;
+
+    var bits = ctx.Line.Split(';');
     if (bits.Length != 2) return;
 
     var name = bits[0];
     var vStr = bits[1];
     var vNum = NumType.Parse(vStr);
 
-    var existing = stations.GetValueOrDefault(name);
-    if (existing is {})
-    {
-        existing.Update(vNum);
-    }
-    else
-    {
-        stations.Add(name, new Station(name, vNum));
-    }
+    var station = ctx.Stations.GetOrAdd(name, (key) => new Station(key));
+    station.Update(vNum);
 }
+
+class WorkerContext(string line, ConcurrentDictionary<string, Station> stations)
+{
+    public string Line = line;
+    public ConcurrentDictionary<string, Station> Stations = stations;
+};
 
 class Station
 {
     public string Name;
     public uint Count;
     public NumType Sum;
-    public NumType Min;
-    public NumType Max;
+    public NumType? Min;
+    public NumType? Max;
 
     public NumType GetAvg() => Sum / Count;
     public override string ToString() => $"{Name}/{Count}/{Min}/{Max}/{GetAvg()}";
 
-    public Station(string name, NumType value)
+    public Station(string name)
     {
         Name = name;
-        Count = 1;
-        Sum = value;
-        Min = value;
-        Max = value;
+        Count = 0;
+        Sum = 0;
+        Min = null;
+        Max = null;
     }
 
     public void Update(NumType value)
     {
         Count += 1;
         Sum += value;
-        if (value < Min) Min = value;
-        if (value > Max) Max = value;
+        if (Min is null || value < Min) Min = value;
+        if (Max is null || value > Max) Max = value;
     }
 }
