@@ -1,6 +1,4 @@
-﻿using System.Text;
-using System.Threading.Channels;
-using NumType = float;
+﻿using NumType = float;
 
 var start = DateTime.Now;
 
