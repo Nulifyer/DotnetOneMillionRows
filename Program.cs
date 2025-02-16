@@ -9,8 +9,8 @@ var stations = new ConcurrentDictionary<string, Station>();
 const string folder = @"C:\Users\Kyle\Documents\source\OdinOneBillionRows\data";
 const string filename =
     //"measurements-1_000.txt";
-    //"measurements-1_000_000.txt";
-    "measurements.txt";
+    "measurements-1_000_000.txt";
+    //"measurements.txt";
 const string filepath = $"{folder}\\{filename}";
 
 using (FileStream fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -60,8 +60,10 @@ return 0;
 
 
 
-static void ProcessChunk(object obj)
+static void ProcessChunk(object? obj)
 {
+    if (obj is null) return;
+
     var ctx = (ChunkContext)obj;
     foreach (var line in ctx.Lines)
     {
@@ -116,59 +118,3 @@ class Station
         if (Max is null || value > Max) Max = value;
     }
 }
-
-// ;
-// while (true)
-// {
-//     var chunk = file.Read()
-
-
-
-//     var line = file.ReadLine();
-//     if (line is not null && line?.Length > 0)
-//     {
-//         ThreadPool.QueueUserWorkItem(ProcessLine, new WorkerContext(line, stations));
-//     }
-//     if (file.EndOfStream)
-//     {
-//         break;
-//     }
-// }
-
-// bool first = false;
-// foreach (var st in stations.Values)
-// {
-//     if (!first)
-//         Console.Write(",");
-//     else
-//         first = false;
-
-//     Console.Write(st.ToString());
-// }
-// Console.Write("\n");
-
-// var end = DateTime.Now;
-// var runtime = end - start;
-// Console.WriteLine($"Runtime: {runtime}");
-
-// static void ProcessLine(object? obj)
-// {
-//     var ctx = (WorkerContext)obj;
-
-//     var bits = ctx.Line.Split(';');
-//     if (bits.Length != 2) return;
-
-//     var name = bits[0];
-//     var vStr = bits[1];
-//     var vNum = NumType.Parse(vStr);
-
-//     var station = ctx.Stations.GetOrAdd(name, (key) => new Station(key));
-//     station.Update(vNum);
-// }
-
-
-// class WorkerContext(string line, ConcurrentDictionary<string, Station> stations)
-// {
-//     public string Line = line;
-//     public ConcurrentDictionary<string, Station> Stations = stations;
-// };
